@@ -51,6 +51,8 @@
 // an arbitrary constant for use with sd_id128_get_machine_app_specific()
 static const char* mctpd_appid = "67369c05-4b97-4b7e-be72-65cfd8639f10";
 
+static const char *conf_file_default = MCTPD_CONF_FILE_DEFAULT;
+
 static mctp_eid_t eid_alloc_min = 0x08;
 static mctp_eid_t eid_alloc_max = 0xfe;
 
@@ -3654,25 +3656,28 @@ static int parse_config_mctp(ctx *ctx, toml_table_t *mctp_tab)
 static int parse_config(ctx *ctx)
 {
 	toml_table_t *conf_root, *mctp_tab;
+	bool conf_file_specified;
 	char errbuf[256] = { 0 };
+	const char *filename;
 	toml_datum_t val;
 	FILE *fp;
 	int rc;
 
-	if (!ctx->config_filename)
-		return 0;
+	conf_file_specified = !!ctx->config_filename;
+	filename = ctx->config_filename ?: conf_file_default;
 
 	rc = -1;
-	fp = fopen(ctx->config_filename, "r");
+	fp = fopen(filename, "r");
 	if (!fp) {
-		warn("can't open configuration file %s", ctx->config_filename);
-		return -1;
+		warn("can't open configuration file %s", filename);
+		/* only fatal if no configuration file was specified */
+		return conf_file_specified ? -1 : 0;
 	}
 
 	conf_root = toml_parse_file(fp, errbuf, sizeof(errbuf));
 	if (!conf_root) {
-		warnx("can't parse configuration file %s: %s",
-		      ctx->config_filename, errbuf);
+		warnx("can't parse configuration file %s: %s", filename,
+		      errbuf);
 		goto out_close;
 	}
 
@@ -3723,8 +3728,7 @@ int main(int argc, char **argv)
 
 	rc = parse_config(ctx);
 	if (rc) {
-		err(EXIT_FAILURE, "Can't load configuration file %s",
-		    ctx->config_filename);
+		err(EXIT_FAILURE, "Can't read configuration");
 	}
 
 	ctx->nl = mctp_nl_new(false);
