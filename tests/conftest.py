@@ -209,7 +209,9 @@ class Endpoint:
     async def handle_message_control(self, sock, src_addr, msg):
         flags, opcode = msg[0:2]
         dst_addr = MCTPSockAddr.for_ep_resp(self, src_addr, sock.addr_ext)
-        hdr = [0x00, opcode]
+        # Use IID from request, mask off Rq and D bits
+        flags = flags & 0x1f
+        hdr = [flags, opcode]
         if opcode == 1:
             # Set Endpoint ID
             (op, eid) = msg[2:]
