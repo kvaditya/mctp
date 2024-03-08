@@ -45,10 +45,12 @@ executable('mctp',
 
 executable('mctp-req',
     sources: ['src/mctp-req.c'] + util_sources,
+    install: true,
 )
 
 executable('mctp-echo',
     sources: ['src/mctp-echo.c'] + util_sources,
+    install: true,
 )
 
 if libsystemd.found()
